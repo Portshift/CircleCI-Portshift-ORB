@@ -1,0 +1,33 @@
+# Note that the following stanza uses CircleCI 2.1 to make use of a Reusable Executor
+# This allows defining a docker image to reuse across jobs.
+# visit https://circleci.com/docs/2.0/reusing-config/#authoring-reusable-executors to learn more.
+
+version: 2.1
+orbs:
+  portshiftscanner: 'portshift/portshift-scanner@1.0.0'
+jobs:
+  docker-build:
+    machine: true
+    steps:
+      - checkout
+      - run: mkdir -p workspace
+      - run: 'docker pull mongo:latest'
+      - run: 'docker save -o workspace/mongo.tar mongo:latest'
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - mongo.tar
+workflows:
+  scan-image:
+    jobs:
+      - docker-build
+      - portshiftscanner/scan-image:
+          requires:
+            - docker-build
+          context: credentials
+          image_name: 'mongo'
+          image_tag: 'latest'
+          access_key: ${ACCESS_KEY}
+          secret_key: ${SECRET_KEY}
+          portshift_server: 'production.demo.portshift.co'
+          image_path: mongo.tar
