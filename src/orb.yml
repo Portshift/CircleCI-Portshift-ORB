@@ -1,0 +1,148 @@
+# This code is licensed from CircleCI to the user under the MIT license. See
+# https://circleci.com/orbs/registry/licensing for details.
+version: 2.1
+
+description: |
+  A Portshift vulneribilities scanner
+examples:
+  simple_build_and_scan:
+    description: Scan a newly built docker image with Portshift vulneribilities scanner.
+    usage:
+      version: 2.1
+      orbs:
+        portshiftscanner: 'portshift-scanner/portshift@dev:0.0.1'
+      jobs:
+        docker-build:
+          machine: true
+          steps:
+            - checkout
+            - run: 'docker build -t myrepo/myimage:tag .'
+            - run: 'docker save -o my_workspace/myimage.tar myrepo/myimage:tag'
+            - persist_to_workspace:
+                root: my_workspace
+                paths:
+                  - myimage.tar
+      workflows:
+        scan-image:
+          jobs:
+            - docker-build
+            - microscanner/scan-image:
+                requires: 
+                  - docker-build
+                image_name: myrepo/myimage
+                image_tag: mytag
+                access_key: my_access_key
+                secret_key: my_secret_key
+                workspace: my_workspace
+                portshift_server: portshift_server
+                image_path: my_workspace/myimage.tar
+
+executors:
+  default:
+    description: A debian-based machine executor.  Note that there is an 
+                 overhead for provisioning a machine executor as a result of
+                 spinning up a private Docker server. Use of the machine key
+                 may require additional fees.
+    machine: 
+      image: circleci/classic:201808-01
+
+commands:
+  install:
+    description: Install Portshift scanner
+    parameters:
+      portshift_server:
+        description: URL of the portshift server to report to
+        type: string
+        default: console.portshift.io
+    steps:
+      - run:
+          name: Import scanning script
+          command: |
+            PORTSHIFT_SERVER=<<parameters.portshift_server>> 
+            mkdir portshift
+            
+            echo ${PORTSHIFT_SERVER}
+            curl -L ${PORTSHIFT_SERVER}/tools/cli/portshift_deployment_cli > portshift/portshift_cli
+            chmod +x portshift/portshift_cli
+  scan:
+    description: Scans an image and sends results to Portshift managment 
+    parameters:
+      image_name:
+        description: The image to scan
+        type: string
+      image_tag:
+        description: The image tag to scan
+        type: string
+      access_key:
+        description: Access key for the Portshift service user
+        type: string
+      secret_key:
+        description: Secret key for the Portshift service user
+        type: string
+      workspace:
+        description: Name of the shared workspace
+        type: string
+      portshift_server:
+        description: URL of the portshift server to report to
+        type: string
+      image_path:
+        description: The name of the image tar file stored in the workspace
+        type: string
+    steps:
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: <<parameters.workspace>>
+      - run:
+          name: Scan for vulneribilities and upload report artifact
+          command: |
+            IMAGE_NAME=<<parameters.image_name>> 
+            IMAGE_TAG=<<parameters.image_tag>> 
+            ACCESS_KEY=<<parameters.access_key>> 
+            SECRET_KEY=<<parameters.secret_key>> 
+            PORTSHIFT_SERVER=<<parameters.portshift_server>> 
+            WORKSPACE=<<parameters.workspace>>        
+            IMAGE_PATH=<<parameters.image_path>>
+
+            ls -R ${WORKSPACE}
+            docker load -i ${WORKSPACE}/${IMAGE_PATH}
+      
+            ./portshift/portshift_cli run-vulnerability-scan --url ${PORTSHIFT_SERVER} --access-key ${ACCESS_KEY} --secret-key ${SECRET_KEY} --image-name ${IMAGE_NAME} --image-tag ${IMAGE_TAG}    
+
+jobs:
+  scan-image:
+    executor: default
+    parameters:
+      image_name:
+        description: The image to scan
+        type: string
+      image_tag:
+        description: The image tag to scan
+        type: string
+      access_key:
+        description: Access key for the Portshift service user
+        type: string
+      secret_key:
+        description: Secret key for the Portshift service user
+        type: string
+      workspace:
+        description: path to load the docker image
+        type: string
+        default: workspace
+      portshift_server:
+        description: URL of the portshift server to report to
+        type: string
+        default: console.portshift.io
+      image_path:
+        description: The name of the image tar file stored in the workspace
+        type: string
+        default: image.tar   
+    steps:
+      - install 
+      - scan:
+          image_name: <<parameters.image_name>>
+          image_tag: <<parameters.image_tag>>
+          access_key: <<parameters.access_key>>
+          secret_key: <<parameters.secret_key>>
+          workspace: <<parameters.workspace>>
+          portshift_server: <<parameters.portshift_server>>
+          image_path: <<parameters.image_path>>
