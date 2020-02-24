@@ -35,7 +35,7 @@ Portshift Orb is an easy way to get started with Portshift runtime security plat
   
 ### **Adding Portshift Orb to your pipeline**
 
-Create a new "Workspace" in the build image job
+Create a a directory where you will build your image. This will later be persisted to a [Workspace](https://circleci.com/docs/2.0/concepts/#workspaces-and-artifacts)
 
 `- run: mkdir -p workspace `
 
@@ -45,10 +45,12 @@ Build your image
 
 Save the image to the workspace:
 
-`- persist_to_workspace:
+```
+ - persist_to_workspace:
           root: workspace
           paths:
-              - image.tar`
+              - image.tar
+```
 
 Add Portshift Orb
 
@@ -56,7 +58,8 @@ Add Portshift Orb
 
 Create a new job for Portshift Orb
 
-`jobs:
+```
+jobs:
       - docker-build
       - portshiftscanner/scan-image:
           requires:
@@ -65,7 +68,8 @@ Create a new job for Portshift Orb
           image_name: <image-name>
           image_tag: <image-tag>
           access_key: ${ACCESS_KEY}
-          secret_key: ${SECRET_KEY}`
+          secret_key: ${SECRET_KEY}
+```
 
 ### **Orb Output**
 
