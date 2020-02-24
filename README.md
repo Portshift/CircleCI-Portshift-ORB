@@ -11,7 +11,7 @@ You need to create a user account in portshift (note: Portshift is a s commercia
 In the user domain you need to define a new "service account":
   1. Go to System (upper tab "manage users")
   2. Create new user with service user role
-     
+     (images/New user image)
   3. After creating a new service user select its "token" from the users table
      **printscreen**
   4. In the token page, copy the "Access Key" and ""Secret Key" (you can use the copy icon on their right side)
