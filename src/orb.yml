@@ -3,7 +3,7 @@
 version: 2.1
 
 description: |
-  Build secure docker images by including Portshift vulnerability scanner in your container development pipeline
+  Build secure docker images by including Portshift's workload indetity creation and vulnerability scanner in your container development pipeline
 display:
   home_url: https://www.portshift.io/
   source_url: https://github.com/Portshift/CircleCI-Portshift-ORB
