@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        portshiftscanner: 'portshift-scanner/portshift@dev:0.0.1'
+        portshift-scanner: portshift/portshift-scanner@1.0.0
       jobs:
         docker-build:
           machine: true
@@ -77,20 +77,25 @@ commands:
         description: The image tag to scan
         type: string
       access_key:
-        description: Access key for the Portshift service user
-        type: string
+        description: Environment variable name for reading the Access key for the Portshift service user
+        type: env_var_name
+        default: PORTSHIFT_ACCESS_KEY
       secret_key:
-        description: Secret key for the Portshift service user
-        type: string
+        description: Environment variable name for reading the Secret key for the Portshift service user
+        type: env_var_name
+        default: PORTSHIFT_SECRET_KEY
       workspace:
         description: Name of the shared workspace
         type: string
+        default: workspace
       portshift_server:
         description: URL of the portshift server to report to
         type: string
+        default: console.portshift.io
       image_path:
         description: The name of the image tar file stored in the workspace
         type: string
+        default: image.tar
     steps:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
@@ -100,16 +105,28 @@ commands:
           command: |
             IMAGE_NAME=<<parameters.image_name>> 
             IMAGE_TAG=<<parameters.image_tag>> 
-            ACCESS_KEY=<<parameters.access_key>> 
-            SECRET_KEY=<<parameters.secret_key>> 
+            ACCESS_KEY=${<<parameters.access_key>>}
+            SECRET_KEY=${<<parameters.secret_key>>}
             PORTSHIFT_SERVER=<<parameters.portshift_server>> 
             WORKSPACE=<<parameters.workspace>>        
             IMAGE_PATH=<<parameters.image_path>>
 
-            ls -R ${WORKSPACE}
+            if [ -z "${ACCESS_KEY}" ]; then
+              echo "Error: The parameter access_key is empty. Please ensure the environment variable <<parameters.access_key>> has been added."
+              exit 1
+            fi
+            if [ -z "${SECRET_KEY}" ]; then
+              echo "Error: The parameter secret_key is empty. Please ensure the environment variable <<parameters.secret_key>> has been added."
+              exit 1
+            fi
+
             docker load -i ${WORKSPACE}/${IMAGE_PATH}
       
-            ./portshift/portshift_cli run-vulnerability-scan --url ${PORTSHIFT_SERVER} --access-key ${ACCESS_KEY} --secret-key ${SECRET_KEY} --image-name ${IMAGE_NAME} --image-tag ${IMAGE_TAG}    
+            ./portshift/portshift_cli run-vulnerability-scan --url ${PORTSHIFT_SERVER} --access-key ${ACCESS_KEY} --secret-key ${SECRET_KEY} --image-name ${IMAGE_NAME} --image-tag ${IMAGE_TAG} | tee /tmp/results
+
+      - store_artifacts:
+          path: /tmp/results
+          destination: results
 
 jobs:
   scan-image:
@@ -122,11 +139,13 @@ jobs:
         description: The image tag to scan
         type: string
       access_key:
-        description: Access key for the Portshift service user
-        type: string
+        description: Environment variable name for reading the Access key for the Portshift service user
+        type: env_var_name
+        default: PORTSHIFT_ACCESS_KEY
       secret_key:
-        description: Secret key for the Portshift service user
-        type: string
+        description: Environment variable name for reading the Secret key for the Portshift service user
+        type: env_var_name
+        default: PORTSHIFT_SECRET_KEY
       workspace:
         description: path to load the docker image
         type: string
