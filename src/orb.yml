@@ -4,6 +4,9 @@ version: 2.1
 
 description: |
   A Portshift vulneribilities scanner
+display:
+  home_url: https://www.portshift.io/
+  source_url: https://github.com/Portshift/CircleCI-Portshift-ORB
 examples:
   simple_build_and_scan:
     description: Scan a newly built docker image with Portshift vulneribilities scanner.
