@@ -27,7 +27,7 @@ workflows:
           context: credentials
           image_name: 'mongo'
           image_tag: 'latest'
-          access_key: ${ACCESS_KEY}
-          secret_key: ${SECRET_KEY}
+          access_key: ACCESS_KEY
+          secret_key: SECRET_KEY
           portshift_server: 'production.demo.portshift.co'
           image_path: mongo.tar
