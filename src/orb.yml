@@ -42,12 +42,15 @@ examples:
 
 executors:
   default:
-    description: A debian-based machine executor.  Note that there is an 
-                 overhead for provisioning a machine executor as a result of
-                 spinning up a private Docker server. Use of the machine key
-                 may require additional fees.
-    machine: 
-      image: circleci/classic:201808-01
+    parameters:
+      tag:
+        description: The `cimg/base` Docker image version tag.
+        type: string
+        default: "2020.02"
+    description: >
+      A small Ubuntu based Docker image 'cimg/base' with common CI tools included. Highly cached on CircleCI for maximum speed.
+    docker:
+      - image: cimg/base:<< parameters.tag >>
 
 commands:
   install:
