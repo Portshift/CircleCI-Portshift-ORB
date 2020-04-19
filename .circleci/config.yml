@@ -4,19 +4,14 @@
 
 version: 2.1
 orbs:
-  portshiftscanner: 'portshift/portshift-scanner@1.0.1'
+  portshiftscanner: 'portshift/portshift-scanner@2.0.0'
 jobs:
   docker-build:
     machine: true
     steps:
       - checkout
-      - run: mkdir -p workspace
       - run: 'docker pull mongo:latest'
-      - run: 'docker save -o workspace/mongo.tar mongo:latest'
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - mongo.tar
+
 workflows:
   scan-image:
     jobs:
@@ -30,4 +25,4 @@ workflows:
           access_key: ACCESS_KEY
           secret_key: SECRET_KEY
           portshift_server: 'production.demo.portshift.co'
-          image_path: mongo.tar
+          
