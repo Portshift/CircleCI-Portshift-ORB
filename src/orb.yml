@@ -37,8 +37,8 @@ examples:
                 access_key: my_access_key
                 secret_key: my_secret_key
                 workspace: my_workspace
+                highest_severity_allowed: 'MEDIUM'
                 portshift_server: portshift_server
-                image_path: my_workspace/myimage.tar
 
 executors:
   default:
@@ -66,9 +66,8 @@ commands:
           command: |
             PORTSHIFT_SERVER=<<parameters.portshift_server>> 
             mkdir portshift
-            
             echo ${PORTSHIFT_SERVER}
-            curl -L ${PORTSHIFT_SERVER}/tools/cli/portshift_deployment_cli > portshift/portshift_cli
+            wget ${PORTSHIFT_SERVER}/tools/cli/portshift_deployment_cli -O portshift/portshift_cli
             chmod +x portshift/portshift_cli
   scan:
     description: Scans an image and sends results to Portshift managment 
@@ -95,13 +94,22 @@ commands:
         description: URL of the portshift server to report to
         type: string
         default: console.portshift.io
-      image_path:
-        description: The name of the image tar file stored in the workspace
-        type: string
-        default: image.tar
+      highest_severity_allowed:
+        description: The highest vulnerability severity allowed. Valid values are CRITICAL, HIGH, MEDIUM, LOW or UNKNOWN
+        type: enum
+        enum: [CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN]
+        default: CRITICAL
+      registry_username:
+        description: Environment variable name for the registry username
+        type: env_var_name
+        default: REGISTRY_USERNAME
+      registry_password:
+        description: Environment variable name for the registry password
+        type: env_var_name
+        default: REGISTRY_PASSWORD
+
     steps:
       - attach_workspace:
-          # Must be absolute path or relative path from working_directory
           at: <<parameters.workspace>>
       - run:
           name: Scan for vulneribilities and upload report artifact
@@ -112,7 +120,10 @@ commands:
             SECRET_KEY=${<<parameters.secret_key>>}
             PORTSHIFT_SERVER=<<parameters.portshift_server>> 
             WORKSPACE=<<parameters.workspace>>        
-            IMAGE_PATH=<<parameters.image_path>>
+            HIGHEST_SEVERITY_ALLOWED=<<parameters.highest_severity_allowed>>
+            REGISTRY_USERNAME=${<<parameters.registry_username>>}
+            REGISTRY_PASSWORD=${<<parameters.registry_password>>}
+
 
             if [ -z "${ACCESS_KEY}" ]; then
               echo "Error: The parameter access_key is empty. Please ensure the environment variable <<parameters.access_key>> has been added."
@@ -122,10 +133,13 @@ commands:
               echo "Error: The parameter secret_key is empty. Please ensure the environment variable <<parameters.secret_key>> has been added."
               exit 1
             fi
+            if [ -n"${REGISTRY_USERNAME}" ] && [ -n"${REGISTRY_PASSWORD}" ]; then
+                docker login ${IMAGE_NAME}:${IMAGE_TAG} -u ${REGISTRY_USERNAME} -p ${REGISTRY_PASSWORD}
+            fi
 
-            docker load -i ${WORKSPACE}/${IMAGE_PATH}
+            docker pull ${IMAGE_NAME}:${IMAGE_TAG}
       
-            ./portshift/portshift_cli run-vulnerability-scan --url ${PORTSHIFT_SERVER} --access-key ${ACCESS_KEY} --secret-key ${SECRET_KEY} --image-name ${IMAGE_NAME} --image-tag ${IMAGE_TAG} | tee /tmp/results
+            ./portshift/portshift_cli run-vulnerability-scan --url ${PORTSHIFT_SERVER} --access-key ${ACCESS_KEY} --secret-key ${SECRET_KEY} --image-name ${IMAGE_NAME} --image-tag ${IMAGE_TAG} --highest-severity-allowed ${HIGHEST_SEVERITY_ALLOWED} -v | tee /tmp/results
 
       - store_artifacts:
           path: /tmp/results
@@ -133,7 +147,7 @@ commands:
 
 jobs:
   scan-image:
-    executor: default
+    machine: true
     parameters:
       image_name:
         description: The image to scan
@@ -157,10 +171,20 @@ jobs:
         description: URL of the portshift server to report to
         type: string
         default: console.portshift.io
-      image_path:
-        description: The name of the image tar file stored in the workspace
-        type: string
-        default: image.tar   
+      highest_severity_allowed:
+        description: The highest vulnerability severity allowed. The valid values are CRITICAL, HIGH, MEDIUM, LOW or UNKNOWN
+        type: enum
+        enum: [CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN]
+        default: CRITICAL
+      registry_username:
+        description: Environment variable name for the registry username
+        type: env_var_name
+        default: REGISTRY_USERNAME
+      registry_password:
+        description: Environment variable name for the registry password
+        type: env_var_name
+        default: REGISTRY_PASSWORD
+
     steps:
       - install 
       - scan:
@@ -170,4 +194,6 @@ jobs:
           secret_key: <<parameters.secret_key>>
           workspace: <<parameters.workspace>>
           portshift_server: <<parameters.portshift_server>>
-          image_path: <<parameters.image_path>>
+          highest_severity_allowed: <<parameters.highest_severity_allowed>>
+          registry_username: <<parameters.registry_username>>
+          registry_password: <<parameters.registry_password>>
