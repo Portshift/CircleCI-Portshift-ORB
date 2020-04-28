@@ -14,24 +14,10 @@ examples:
       version: 2.1
       orbs:
         portshift-scanner: portshift/portshift-scanner@1.0.1
-      jobs:
-        docker-build:
-          machine: true
-          steps:
-            - checkout
-            - run: 'docker build -t myrepo/myimage:tag .'
-            - run: 'docker save -o my_workspace/myimage.tar myrepo/myimage:tag'
-            - persist_to_workspace:
-                root: my_workspace
-                paths:
-                  - myimage.tar
       workflows:
         scan-image:
           jobs:
-            - docker-build
             - microscanner/scan-image:
-                requires: 
-                  - docker-build
                 image_name: myrepo/myimage
                 image_tag: mytag
                 access_key: my_access_key
@@ -133,7 +119,7 @@ commands:
               echo "Error: The parameter secret_key is empty. Please ensure the environment variable <<parameters.secret_key>> has been added."
               exit 1
             fi
-            if [ -n"${REGISTRY_USERNAME}" ] && [ -n"${REGISTRY_PASSWORD}" ]; then
+            if [ -n "${REGISTRY_USERNAME}" ] && [ -n "${REGISTRY_PASSWORD}" ]; then
                 docker login ${IMAGE_NAME}:${IMAGE_TAG} -u ${REGISTRY_USERNAME} -p ${REGISTRY_PASSWORD}
             fi
 
