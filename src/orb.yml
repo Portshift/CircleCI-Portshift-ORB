@@ -172,7 +172,8 @@ jobs:
         default: REGISTRY_PASSWORD
 
     steps:
-      - install 
+      - install:
+          portshift_server: <<parameters.portshift_server>>
       - scan:
           image_name: <<parameters.image_name>>
           image_tag: <<parameters.image_tag>>
