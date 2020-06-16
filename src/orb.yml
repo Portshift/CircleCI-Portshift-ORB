@@ -13,7 +13,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        portshift-scanner: portshift/portshift-scanner@1.0.1
+        portshift-scanner: portshift/portshift-scanner@2.1.1
       workflows:
         scan-image:
           jobs:
